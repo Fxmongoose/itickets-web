@@ -221,6 +221,13 @@
       document.body.appendChild(a);
       a.click();
       a.remove();
+
+      // Keep SAVE behavior, then immediately show the generated JPG.
+      // Use the existing preview URL because it remains valid for viewing.
+      setTimeout(()=>{
+        if(lastUrl) window.open(lastUrl,"_blank");
+      },150);
+
       setTimeout(()=>URL.revokeObjectURL(url),60000);
       saveAgain.textContent="SAVED ✓";
       setTimeout(()=>{saveAgain.textContent="SAVE IMAGE";saveAgain.disabled=false;},1300);
