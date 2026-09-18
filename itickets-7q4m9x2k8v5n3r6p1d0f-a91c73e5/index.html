@@ -25,6 +25,23 @@
     #lock h2{margin:0 0 6px;font-size:27px}
     #lock p{color:#666;margin:0 0 15px}
     #lockError{min-height:20px;color:#b00020;font-size:13px;margin-top:8px}
+
+    #successState{
+      display:none;
+      text-align:center;
+      margin:28px 0 8px;
+    }
+    #successState.show{display:block;}
+    #successCheck{
+      width:92px;height:92px;margin:0 auto 16px;
+      border-radius:50%;
+      background:#20a84a;color:white;
+      font-size:60px;font-weight:700;line-height:92px;
+    }
+    #successText{
+      font-size:22px;font-weight:700;margin-bottom:18px;
+    }
+
 </style>
 </head>
 <body>
@@ -51,7 +68,11 @@
 
     <button id="generate" disabled>LOADING…</button>
 <div class="small">After generation, tap SAVE IMAGE. The button shows SAVED when the download starts.</div>
-    <button id="saveAgain" style="display:none">SAVE IMAGE</button>
+    <div id="successState">
+  <div id="successCheck">✓</div>
+  <div id="successText">IMAGE READY</div>
+</div>
+<button id="saveAgain" style="display:none">SAVE IMAGE</button>
   </section>
 </main>
 
@@ -60,6 +81,8 @@
 </iframe>
 
 <script>
+  const successState=document.getElementById("successState");
+
 (() => {
   "use strict";
   const pp = document.getElementById("photopea");
@@ -119,7 +142,7 @@ const saveAgain = document.getElementById("saveAgain");
     if(lastUrl) URL.revokeObjectURL(lastUrl);
     lastBlob=blob;
     lastUrl=URL.createObjectURL(blob);
-saveAgain.style.display="block";
+saveAgain.style.display="block"; successState.classList.add("show");
   }
 
   async function makeCleanJpeg(blob){
