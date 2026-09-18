@@ -52,7 +52,7 @@
 
     <button id="generate" disabled>LOADING…</button>
     <img id="preview" alt="Generated image" title="Long-press the image to save it">
-    <div class="small">After generation, tap SAVE IMAGE. On mobile this opens the phone's native Save / Share menu. You can also long-press the preview and choose Save image.</div>
+    <div class="small">After generation, tap SAVE IMAGE to download the JPG. If your browser blocks downloads, long-press the preview and choose Save image.</div>
     <button id="saveAgain" style="display:none">SAVE IMAGE</button>
   </section>
 </main>
@@ -127,34 +127,22 @@
     saveAgain.style.display="block";
   }
 
-  async function saveImage(blob){
+  function saveImage(blob){
     if(!blob) return;
     const fileName="iTickets_"+Date.now()+".jpg";
-    const file=new File([blob], fileName, {type:"image/jpeg"});
-
-    // Best mobile experience: native Share/Save sheet when supported.
-    try{
-      if(navigator.canShare && navigator.canShare({files:[file]}) && navigator.share){
-        await navigator.share({files:[file], title:"iTickets"});
-        return;
-      }
-    }catch(e){
-      if(e && e.name==="AbortError") return;
-    }
-
-    // Fallback for desktop / browsers that support normal downloads.
     const url=URL.createObjectURL(blob);
     const a=document.createElement("a");
     a.href=url;
     a.download=fileName;
+    a.rel="noopener";
     a.style.display="none";
     document.body.appendChild(a);
     a.click();
     a.remove();
-    setTimeout(()=>URL.revokeObjectURL(url), 30000);
+    setTimeout(()=>URL.revokeObjectURL(url), 60000);
   }
 
-  saveAgain.onclick=async()=>{ await saveImage(lastBlob); };
+  saveAgain.onclick=()=>{ saveImage(lastBlob); };
 
   window.addEventListener("message", e=>{
     if(e.source!==pp.contentWindow)return;
