@@ -52,7 +52,7 @@
 
     <button id="generate" disabled>LOADING…</button>
     <img id="preview" alt="Generated image" title="Long-press the image to save it">
-    <div class="small">After generation, tap SAVE IMAGE to download the JPG. If your browser blocks downloads, long-press the preview and choose Save image.</div>
+    <div class="small">After generation, tap SAVE IMAGE. The JPG is stamped with the current date/time before download. The button shows SAVED when the download starts.</div>
     <button id="saveAgain" style="display:none">SAVE IMAGE</button>
   </section>
 </main>
@@ -127,19 +127,107 @@
     saveAgain.style.display="block";
   }
 
-  function saveImage(blob){
+  function asciiBytes(str){
+    const out=new Uint8Array(str.length);
+    for(let i=0;i<str.length;i++) out[i]=str.charCodeAt(i)&255;
+    return out;
+  }
+
+  function currentExifTime(){
+    const d=new Date(), p=n=>String(n).padStart(2,"0");
+    return d.getFullYear()+":"+p(d.getMonth()+1)+":"+p(d.getDate())+" "+
+           p(d.getHours())+":"+p(d.getMinutes())+":"+p(d.getSeconds());
+  }
+
+  // Adds a fresh EXIF APP1 block with DateTime, DateTimeOriginal and DateTimeDigitized.
+  async function withCurrentExif(blob){
+    const jpg=new Uint8Array(await blob.arrayBuffer());
+    if(jpg.length<2 || jpg[0]!==0xFF || jpg[1]!==0xD8) return blob;
+
+    const dt=currentExifTime()+"\0";
+    const dtb=asciiBytes(dt);
+    const entries0=3, entriesExif=2;
+    const ifd0Offset=8;
+    const ifd0Size=2+entries0*12+4;
+    const exifIfdOffset=ifd0Offset+ifd0Size;
+    const exifIfdSize=2+entriesExif*12+4;
+    const date0Offset=exifIfdOffset+exifIfdSize;
+    const dateOrigOffset=date0Offset+dtb.length;
+    const dateDigOffset=dateOrigOffset+dtb.length;
+    const tiffLen=dateDigOffset+dtb.length;
+    const tiff=new Uint8Array(tiffLen);
+    const dv=new DataView(tiff.buffer);
+
+    // TIFF header, little-endian ("II")
+    tiff[0]=0x49;tiff[1]=0x49;
+    dv.setUint16(2,42,true);
+    dv.setUint32(4,ifd0Offset,true);
+
+    function entry(off,tag,type,count,value){
+      dv.setUint16(off,tag,true); dv.setUint16(off+2,type,true);
+      dv.setUint32(off+4,count,true); dv.setUint32(off+8,value,true);
+    }
+
+    dv.setUint16(ifd0Offset,entries0,true);
+    let e=ifd0Offset+2;
+    entry(e,0x0132,2,dtb.length,date0Offset); e+=12;        // DateTime
+    entry(e,0x8769,4,1,exifIfdOffset); e+=12;              // ExifIFDPointer
+    entry(e,0x0112,3,1,1);                                // Orientation=1
+    // SHORT value 1 occupies first two bytes of value field.
+    dv.setUint16(e+8,1,true); dv.setUint16(e+10,0,true);
+    dv.setUint32(ifd0Offset+2+entries0*12,0,true);
+
+    dv.setUint16(exifIfdOffset,entriesExif,true);
+    e=exifIfdOffset+2;
+    entry(e,0x9003,2,dtb.length,dateOrigOffset); e+=12;     // DateTimeOriginal
+    entry(e,0x9004,2,dtb.length,dateDigOffset);            // DateTimeDigitized
+    dv.setUint32(exifIfdOffset+2+entriesExif*12,0,true);
+
+    tiff.set(dtb,date0Offset);
+    tiff.set(dtb,dateOrigOffset);
+    tiff.set(dtb,dateDigOffset);
+
+    const exifHead=asciiBytes("Exif\0\0");
+    const payloadLen=exifHead.length+tiff.length;
+    const segment=new Uint8Array(4+payloadLen);
+    segment[0]=0xFF; segment[1]=0xE1;
+    const jpegLength=payloadLen+2;
+    segment[2]=(jpegLength>>8)&255; segment[3]=jpegLength&255;
+    segment.set(exifHead,4);
+    segment.set(tiff,4+exifHead.length);
+
+    // Insert immediately after SOI. Readers normally use this first EXIF block.
+    const out=new Uint8Array(jpg.length+segment.length);
+    out.set(jpg.subarray(0,2),0);
+    out.set(segment,2);
+    out.set(jpg.subarray(2),2+segment.length);
+    return new Blob([out],{type:"image/jpeg"});
+  }
+
+  async function saveImage(blob){
     if(!blob) return;
-    const fileName="iTickets_"+Date.now()+".jpg";
-    const url=URL.createObjectURL(blob);
-    const a=document.createElement("a");
-    a.href=url;
-    a.download=fileName;
-    a.rel="noopener";
-    a.style.display="none";
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(()=>URL.revokeObjectURL(url), 60000);
+    saveAgain.disabled=true;
+    saveAgain.textContent="SAVING…";
+    try{
+      const freshBlob=await withCurrentExif(blob);
+      const fileName="iTickets_"+Date.now()+".jpg";
+      const url=URL.createObjectURL(freshBlob);
+      const a=document.createElement("a");
+      a.href=url;
+      a.download=fileName;
+      a.rel="noopener";
+      a.style.display="none";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(()=>URL.revokeObjectURL(url),60000);
+      saveAgain.textContent="SAVED ✓";
+      setTimeout(()=>{saveAgain.textContent="SAVE IMAGE";saveAgain.disabled=false;},1300);
+    }catch(e){
+      saveAgain.textContent="SAVE IMAGE";
+      saveAgain.disabled=false;
+      alert("Save error: "+e.message);
+    }
   }
 
   saveAgain.onclick=()=>{ saveImage(lastBlob); };
