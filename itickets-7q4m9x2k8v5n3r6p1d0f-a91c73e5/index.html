@@ -26,25 +26,7 @@
     #lock h2{margin:0 0 6px;font-size:27px}
     #lock p{color:#666;margin:0 0 15px}
     #lockError{min-height:20px;color:#b00020;font-size:13px;margin-top:8px}
-
     #preview { cursor: zoom-in; }
-    #imageViewer{
-      position:fixed; inset:0; z-index:99999; display:none;
-      background:rgba(0,0,0,.97); overflow:auto;
-      -webkit-overflow-scrolling:touch; touch-action:pinch-zoom;
-    }
-    #imageViewer.open{display:flex; align-items:center; justify-content:center;}
-    #viewerImage{
-      display:block; width:auto; height:auto; max-width:none; max-height:none;
-      object-fit:contain;
-    }
-    #viewerClose{
-      position:fixed; top:14px; right:14px; z-index:100000;
-      width:46px; height:46px; border:0; border-radius:50%;
-      font-size:28px; line-height:46px; padding:0; cursor:pointer;
-      background:rgba(255,255,255,.9); color:#111;
-    }
-
 </style>
 </head>
 <body>
@@ -334,39 +316,12 @@
   code.addEventListener("keydown", e => { if(e.key==="Enter") unlock(); });
 })();
 
-  const imageViewer=document.getElementById("imageViewer");
-  const viewerImage=document.getElementById("viewerImage");
-  const viewerClose=document.getElementById("viewerClose");
-
-  function openFullPreview(){
+  preview.addEventListener("click",()=>{
     if(!lastUrl) return;
-    viewerImage.src=lastUrl;
-    imageViewer.classList.add("open");
-    imageViewer.setAttribute("aria-hidden","false");
-    document.body.style.overflow="hidden";
-  }
-  function closeFullPreview(){
-    imageViewer.classList.remove("open");
-    imageViewer.setAttribute("aria-hidden","true");
-    viewerImage.removeAttribute("src");
-    document.body.style.overflow="";
-  }
-  preview.addEventListener("click",openFullPreview);
-  viewerClose.addEventListener("click",closeFullPreview);
-  imageViewer.addEventListener("click",(e)=>{
-    if(e.target===imageViewer) closeFullPreview();
+    window.open(lastUrl,"_blank");
   });
-  document.addEventListener("keydown",(e)=>{
-    if(e.key==="Escape" && imageViewer.classList.contains("open")) closeFullPreview();
-  });
-
 </script>
 
-
-<div id="imageViewer" aria-hidden="true">
-  <button id="viewerClose" type="button" aria-label="Close">×</button>
-  <img id="viewerImage" alt="iTickets full resolution">
-</div>
 
 </body>
 </html>
