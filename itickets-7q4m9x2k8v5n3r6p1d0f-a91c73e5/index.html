@@ -17,7 +17,6 @@
     input{width:100%;font-size:22px;padding:13px;border:1px solid #bbb;border-radius:10px}
     button{width:100%;margin-top:18px;padding:15px;border:0;border-radius:11px;background:#111;color:#fff;font-size:17px;font-weight:700}
     button:disabled{opacity:.45}
-    #preview{display:none;width:100%;margin-top:18px;border-radius:10px}
     #photopea{position:fixed;width:1px;height:1px;border:0;opacity:0;pointer-events:none}
     .small{font-size:12px;color:#777;margin-top:10px}
   
@@ -26,7 +25,6 @@
     #lock h2{margin:0 0 6px;font-size:27px}
     #lock p{color:#666;margin:0 0 15px}
     #lockError{min-height:20px;color:#b00020;font-size:13px;margin-top:8px}
-    #preview { cursor: zoom-in; }
 </style>
 </head>
 <body>
@@ -52,8 +50,7 @@
     <input id="board" value="0821" inputmode="numeric" autocomplete="off">
 
     <button id="generate" disabled>LOADING…</button>
-    <img id="preview" alt="Generated image" title="Long-press the image to save it">
-    <div class="small">After generation, tap SAVE IMAGE. The JPG is stamped with the current date/time before download. The button shows SAVED when the download starts.</div>
+<div class="small">After generation, tap SAVE IMAGE. The button shows SAVED when the download starts.</div>
     <button id="saveAgain" style="display:none">SAVE IMAGE</button>
   </section>
 </main>
@@ -69,8 +66,7 @@
   const status = document.getElementById("status");
   const button = document.getElementById("generate");
   const board = document.getElementById("board");
-  const preview = document.getElementById("preview");
-  const saveAgain = document.getElementById("saveAgain");
+const saveAgain = document.getElementById("saveAgain");
   const PHOTOPEA_ORIGIN = "https://www.photopea.com";
   let state = "boot", busy = false, lastBlob = null, lastUrl = null;
 
@@ -123,9 +119,7 @@
     if(lastUrl) URL.revokeObjectURL(lastUrl);
     lastBlob=blob;
     lastUrl=URL.createObjectURL(blob);
-    preview.src=lastUrl;
-    preview.style.display="block";
-    saveAgain.style.display="block";
+saveAgain.style.display="block";
   }
 
   async function makeCleanJpeg(blob){
@@ -258,11 +252,6 @@
   open.addEventListener("click", unlock);
   code.addEventListener("keydown", e => { if(e.key==="Enter") unlock(); });
 })();
-
-  preview.addEventListener("click",()=>{
-    if(!lastUrl) return;
-    window.open(lastUrl,"_blank");
-  });
 </script>
 
 
