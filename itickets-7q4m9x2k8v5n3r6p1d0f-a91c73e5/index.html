@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#111111">
+  <title>iTickets</title>
+  <style>
+    *{box-sizing:border-box}
+    body{margin:0;background:#f4f4f6;color:#111;font-family:Arial,sans-serif}
+    .wrap{max-width:520px;margin:auto;padding:24px 18px 40px}
+    .card{background:white;border-radius:18px;padding:22px;box-shadow:0 5px 24px rgba(0,0,0,.08)}
+    h1{margin:0 0 4px;font-size:30px}
+    .sub,.status{color:#666;font-size:14px}
+    .status{margin:14px 0;padding:10px 12px;background:#f3f3f3;border-radius:10px}
+    label{display:block;font-size:13px;font-weight:700;margin:18px 0 7px}
+    input{width:100%;font-size:22px;padding:13px;border:1px solid #bbb;border-radius:10px}
+    button{width:100%;margin-top:18px;padding:15px;border:0;border-radius:11px;background:#111;color:#fff;font-size:17px;font-weight:700}
+    button:disabled{opacity:.45}
+    #preview{display:none;width:100%;margin-top:18px;border-radius:10px}
+    #photopea{position:fixed;width:1px;height:1px;border:0;opacity:0;pointer-events:none}
+    .small{font-size:12px;color:#777;margin-top:10px}
+  
+    #lock{position:fixed;inset:0;z-index:9999;background:#f4f4f6;display:flex;align-items:center;justify-content:center;padding:20px}
+    #lock .box{width:min(420px,100%);background:#fff;padding:24px;border-radius:18px;box-shadow:0 5px 24px rgba(0,0,0,.10)}
+    #lock h2{margin:0 0 6px;font-size:27px}
+    #lock p{color:#666;margin:0 0 15px}
+    #lockError{min-height:20px;color:#b00020;font-size:13px;margin-top:8px}
+</style>
+</head>
+<body>
+
+<div id="lock">
+  <div class="box">
+    <h2>iTickets</h2>
+    <p>Private access</p>
+    <label for="accessCode">ACCESS CODE</label>
+    <input id="accessCode" type="password" inputmode="numeric" autocomplete="off">
+    <button id="unlock">OPEN</button>
+    <div id="lockError"></div>
+  </div>
+</div>
+
+<main class="wrap">
+  <section class="card">
+    <h1>iTickets</h1>
+    <div class="sub">Automatic date & time · HQ JPG</div>
+    <div id="status" class="status">Loading PSD engine…</div>
+
+    <label for="board">BOARD</label>
+    <input id="board" value="0821" inputmode="numeric" autocomplete="off">
+
+    <button id="generate" disabled>LOADING…</button>
+    <img id="preview" alt="Generated image" title="Long-press the image to save it">
+    <div class="small">After generation, tap SAVE IMAGE. On mobile this opens the phone's native Save / Share menu. You can also long-press the preview and choose Save image.</div>
+    <button id="saveAgain" style="display:none">SAVE IMAGE</button>
+  </section>
+</main>
+
+<iframe id="photopea"
+  src="https://www.photopea.com#%7B%22environment%22%3A%7B%22vmode%22%3A2%2C%22intro%22%3Afalse%2C%22localsave%22%3Afalse%7D%7D">
+</iframe>
+
+<script>
+(() => {
+  "use strict";
+  const pp = document.getElementById("photopea");
+  const status = document.getElementById("status");
+  const button = document.getElementById("generate");
+  const board = document.getElementById("board");
+  const preview = document.getElementById("preview");
+  const saveAgain = document.getElementById("saveAgain");
+  const PHOTOPEA_ORIGIN = "https://www.photopea.com";
+  let state = "boot", busy = false, lastBlob = null, lastUrl = null;
+
+  function setStatus(t){ status.textContent=t; }
+  function fail(t){ busy=false; setStatus("Error: "+t); button.disabled = state!=="ready"; button.textContent="GENERATE HQ JPG"; }
+  function sendScript(s){ pp.contentWindow.postMessage(s, PHOTOPEA_ORIGIN); }
+
+  async function loadPsd(){
+    try{
+      const r=await fetch("./template.psd",{cache:"no-store"});
+      if(!r.ok) throw new Error("template.psd HTTP "+r.status);
+      pp.contentWindow.postMessage(await r.arrayBuffer(), PHOTOPEA_ORIGIN);
+    }catch(e){ fail("PSD load error: "+e.message); }
+  }
+
+  const tagScript = `
+    function findLayer(container,wantedName){
+      for(var i=0;i<container.layers.length;i++){
+        var layer=container.layers[i];
+        if(layer.name===wantedName)return layer;
+        try{if(layer.layers&&layer.layers.length){var f=findLayer(layer,wantedName);if(f)return f;}}catch(_){}
+      } return null;
+    }
+    function renameRequired(oldName,newName){
+      var layer=findLayer(app.activeDocument,oldName);
+      if(!layer)throw new Error("Missing PSD layer: "+oldName);
+      layer.name=newName;
+    }
+    try{
+      renameRequired("08.09.2026","__DATE__");
+      renameRequired("3:12 PM SUS","__TIME_TOP__");
+      renameRequired("3:12 PM JOS","__TIME_BOTTOM__");
+      renameRequired("15:12 Ora in Mesaj","__TIME_MESSAGE__");
+      renameRequired("0821 Bord Nr","__BOARD__");
+      app.echoToOE("__READY__");
+    }catch(e){app.echoToOE("__ERROR__"+e.toString());}
+  `;
+
+  function pad(n){return String(n).padStart(2,"0")}
+  function valuesNow(){
+    const d=new Date(), h=d.getHours(), h12=(h%12)||12, ap=h>=12?"PM":"AM";
+    return {
+      date:pad(d.getDate())+"."+pad(d.getMonth()+1)+"."+d.getFullYear(),
+      t24:pad(h)+":"+pad(d.getMinutes()),
+      t12:h12+":"+pad(d.getMinutes())+" "+ap
+    };
+  }
+
+  function showResult(blob){
+    if(lastUrl) URL.revokeObjectURL(lastUrl);
+    lastBlob=blob;
+    lastUrl=URL.createObjectURL(blob);
+    preview.src=lastUrl;
+    preview.style.display="block";
+    saveAgain.style.display="block";
+  }
+
+  async function saveImage(blob){
+    if(!blob) return;
+    const fileName="iTickets_"+Date.now()+".jpg";
+    const file=new File([blob], fileName, {type:"image/jpeg"});
+
+    // Best mobile experience: native Share/Save sheet when supported.
+    try{
+      if(navigator.canShare && navigator.canShare({files:[file]}) && navigator.share){
+        await navigator.share({files:[file], title:"iTickets"});
+        return;
+      }
+    }catch(e){
+      if(e && e.name==="AbortError") return;
+    }
+
+    // Fallback for desktop / browsers that support normal downloads.
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement("a");
+    a.href=url;
+    a.download=fileName;
+    a.style.display="none";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url), 30000);
+  }
+
+  saveAgain.onclick=async()=>{ await saveImage(lastBlob); };
+
+  window.addEventListener("message", e=>{
+    if(e.source!==pp.contentWindow)return;
+    const data=e.data;
+    if(data==="done"){
+      if(state==="boot"){state="loading_psd";loadPsd();return;}
+      if(state==="loading_psd"){state="tagging";sendScript(tagScript);return;}
+      return;
+    }
+    if(typeof data==="string"){
+      if(data==="__READY__"){
+        state="ready"; busy=false; setStatus("Ready");
+        button.disabled=false; button.textContent="GENERATE HQ JPG"; return;
+      }
+      if(data.startsWith("__ERROR__")){fail(data.slice(9));return;}
+    }
+    if(data instanceof ArrayBuffer){
+      busy=false; button.disabled=false; button.textContent="GENERATE HQ JPG";
+      setStatus("Generated · image ready to save");
+      const blob=new Blob([data],{type:"image/jpeg"});
+      showResult(blob);
+      // Keep the explicit SAVE IMAGE button for mobile browsers,
+      // where a later user tap is the most reliable way to open Save/Share.
+
+    }
+  });
+
+  button.onclick=()=>{
+    if(state!=="ready"||busy)return;
+    const b=board.value.trim();
+    if(!b){alert("BOARD cannot be empty");return;}
+    const v=valuesNow();
+    busy=true;button.disabled=true;button.textContent="GENERATING…";
+    setStatus("Generating "+v.date+" · "+v.t24+"…");
+    const jsString=x=>JSON.stringify(String(x));
+    sendScript(`
+      function findLayer(container,wantedName){
+        for(var i=0;i<container.layers.length;i++){
+          var layer=container.layers[i];
+          if(layer.name===wantedName)return layer;
+          try{if(layer.layers&&layer.layers.length){var f=findLayer(layer,wantedName);if(f)return f;}}catch(_){}
+        } return null;
+      }
+      function replaceText(layerName,value){
+        var layer=findLayer(app.activeDocument,layerName);
+        if(!layer)throw new Error("Missing editable layer: "+layerName);
+        if(!layer.textItem)throw new Error("Layer is not editable text: "+layerName);
+        layer.textItem.contents=value;
+      }
+      try{
+        replaceText("__DATE__",${jsString(v.date)});
+        replaceText("__TIME_TOP__",${jsString(v.t12)});
+        replaceText("__TIME_BOTTOM__",${jsString(v.t12)});
+        replaceText("__TIME_MESSAGE__",${jsString(v.t24)});
+        replaceText("__BOARD__",${jsString(b)});
+        app.activeDocument.saveToOE("jpg:1.0");
+      }catch(e){app.echoToOE("__ERROR__"+e.toString());}
+    `);
+  };
+})();
+</script>
+
+<script>
+(() => {
+  const ACCESS_CODE = "110101";
+  const lock = document.getElementById("lock");
+  const code = document.getElementById("accessCode");
+  const open = document.getElementById("unlock");
+  const err = document.getElementById("lockError");
+  function unlock(){
+    if(code.value === ACCESS_CODE){
+      sessionStorage.setItem("itickets_access","ok");
+      lock.style.display="none";
+    } else {
+      err.textContent="Wrong access code";
+      code.value="";
+      code.focus();
+    }
+  }
+  if(sessionStorage.getItem("itickets_access")==="ok") lock.style.display="none";
+  open.addEventListener("click", unlock);
+  code.addEventListener("keydown", e => { if(e.key==="Enter") unlock(); });
+})();
+</script>
+
+</body>
+</html>
