@@ -42,46 +42,57 @@
       font-size:22px;font-weight:700;margin-bottom:18px;
     }
 
+
+body{margin:0;background:#f4f5f7;font-family:Arial,sans-serif;color:#111}
+.pay-shell{box-sizing:border-box;width:min(100%,520px);min-height:100vh;margin:auto;background:#fff;padding:25px 24px;box-shadow:0 4px 24px #00000012}
+header{display:flex;justify-content:space-between;align-items:center}.brand{font-size:30px;display:flex;gap:9px;align-items:center}.hamb{font-size:29px}
+.subtitle{color:#747d8d;font-size:17px;margin:3px 0 27px}label{display:block;font-size:15px;font-weight:700;margin-bottom:8px}
+#board{box-sizing:border-box;width:100%;font-size:26px;padding:15px;border:1px solid #cbd1d9;border-radius:11px;margin-bottom:18px}
+.primary{width:100%;border:0;border-radius:10px;background:#111;color:#fff;font-size:18px;font-weight:700;padding:18px 12px}
+.paylogos{display:flex;justify-content:center;align-items:center;gap:18px;margin:23px 0 8px}.paylogos img:first-child{width:76px}.paylogos img:last-child{width:54px}
+.safe{display:flex;align-items:center;gap:10px;color:#747d8d;font-size:14px}.safe i{height:1px;background:#d8dce2;flex:1}
+.cardbox{margin-top:18px;padding:12px;background:#fafbfc;border:1px solid #e2e5e9;border-radius:12px}.cardbox small{color:#7b8492}
+.cardline{display:flex;justify-content:space-between;align-items:center;margin-top:7px;padding:12px;background:#fff;border:1px solid #cdd3dc;border-radius:9px;font-size:20px}.cardline img{width:55px}
+.secured{margin:17px 4px;color:#7b8492;font-size:14px}.hidden{display:none!important}
+#processingState,#successState{text-align:center;padding:62px 0 32px}.spinner{width:48px;height:48px;margin:0 auto 22px;border:6px solid #e5e8ec;border-top-color:#111;border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}#processingState h2{font-size:21px;margin:0}#processingState p{color:#7b8492}
+.check{width:88px;height:88px;line-height:88px;border-radius:50%;margin:0 auto 16px;background:#13b85c;color:#fff;font-size:58px;font-weight:700}
+#successState h2{color:#13a953;font-size:22px;margin:0 0 23px}footer{text-align:center;color:#7b8492;font-size:13px;margin-top:38px}
+
 </style>
 </head>
 <body>
-
-<div id="lock">
-  <div class="box">
-    <h2>iTickets</h2>
-    <p>Private access</p>
-    <label for="accessCode">ACCESS CODE</label>
-    <input id="accessCode" type="password" inputmode="numeric" autocomplete="off">
-    <button id="unlock">OPEN</button>
-    <div id="lockError"></div>
-  </div>
+<div class="pay-shell">
+ <header><div class="brand"><span>▣</span><b>iTickets</b></div><div class="hamb">☰</div></header>
+ <div class="subtitle">Obține un ticket online</div>
+ <section id="entryState">
+   <label for="board">BOARD</label>
+   <input id="board" inputmode="numeric" value="0821">
+   <button id="button" class="primary">GENEREAZĂ</button>
+   <div class="paylogos"><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAgNDAiPjx0ZXh0IHg9IjQiIHk9IjMxIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMzIiIGZvbnQtd2VpZ2h0PSI5MDAiIGZvbnQtc3R5bGU9Iml0YWxpYyIgZmlsbD0iIzE0MzRDQiI+VklTQTwvdGV4dD48L3N2Zz4="><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA3MCA0MiI+PGNpcmNsZSBjeD0iMjciIGN5PSIyMSIgcj0iMTgiIGZpbGw9IiNFQjAwMUIiLz48Y2lyY2xlIGN4PSI0MyIgY3k9IjIxIiByPSIxOCIgZmlsbD0iI0Y3OUUxQiIgZmlsbC1vcGFjaXR5PSIuOTIiLz48L3N2Zz4="></div>
+   <div class="safe"><i></i>Plată sigură și rapidă<i></i></div>
+   <div class="cardbox"><small>Card utilizat</small><div class="cardline"><span>•••• •••• •••• 6598</span><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAgNDAiPjx0ZXh0IHg9IjQiIHk9IjMxIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMzIiIGZvbnQtd2VpZ2h0PSI5MDAiIGZvbnQtc3R5bGU9Iml0YWxpYyIgZmlsbD0iIzE0MzRDQiI+VklTQTwvdGV4dD48L3N2Zz4="></div></div>
+   <div class="secured">♢ &nbsp; Tranzacție securizată</div>
+ </section>
+ <section id="processingState" class="hidden">
+   <div class="spinner"></div><h2>Se generează ticketul...</h2><p>Vă rugăm să așteptați</p>
+ </section>
+ <section id="successState" class="hidden">
+   <div class="check">✓</div><h2>TICKET IS READY</h2>
+   <button id="saveAgain" class="primary">PRIMEȘTE MESAJUL</button>
+ </section>
+ <div id="status" class="hidden"></div>
+ <footer>iTickets • P.UA 2026</footer>
 </div>
-
-<main class="wrap">
-  <section class="card">
-    <h1>iTickets</h1>
-    <div class="sub">Automatic date & time · HQ JPG</div>
-    <div id="status" class="status">Loading PSD engine…</div>
-
-    <label for="board">BOARD</label>
-    <input id="board" value="0821" inputmode="numeric" autocomplete="off">
-
-    <button id="generate" disabled>LOADING…</button>
-<div class="small">After generation, tap SAVE IMAGE. The button shows SAVED when the download starts.</div>
-    <div id="successState">
-  <div id="successCheck">✓</div>
-  <div id="successText">IMAGE READY</div>
-</div>
-<button id="saveAgain" style="display:none">SAVE IMAGE</button>
-  </section>
-</main>
-
 <iframe id="photopea"
   src="https://www.photopea.com#%7B%22environment%22%3A%7B%22vmode%22%3A2%2C%22intro%22%3Afalse%2C%22localsave%22%3Afalse%7D%7D">
 </iframe>
-
 <script>
+  const entryState=document.getElementById("entryState");
+  const processingState=document.getElementById("processingState");
   const successState=document.getElementById("successState");
+
+  
 
 (() => {
   "use strict";
@@ -168,7 +179,7 @@ saveAgain.style.display="block"; successState.classList.add("show");
   async function saveImage(blob){
     if(!blob) return;
     saveAgain.disabled=true;
-    saveAgain.textContent="SAVING…";
+    saveAgain.textContent="SE SALVEAZĂ…";
     try{
       const cleanBlob=await makeCleanJpeg(blob);
       const fileName="iTickets_"+Date.now()+".jpg";
@@ -182,10 +193,10 @@ saveAgain.style.display="block"; successState.classList.add("show");
       a.click();
       a.remove();
       setTimeout(()=>URL.revokeObjectURL(url),60000);
-      saveAgain.textContent="SAVED ✓";
-      setTimeout(()=>{saveAgain.textContent="SAVE IMAGE";saveAgain.disabled=false;},1300);
+      saveAgain.textContent="SALVAT ✓";
+      setTimeout(()=>{saveAgain.textContent="PRIMEȘTE MESAJUL";saveAgain.disabled=false;},1300);
     }catch(e){
-      saveAgain.textContent="SAVE IMAGE";
+      saveAgain.textContent="PRIMEȘTE MESAJUL";
       saveAgain.disabled=false;
       alert("Save error: "+e.message);
     }
@@ -213,7 +224,9 @@ saveAgain.style.display="block"; successState.classList.add("show");
       setStatus("Generated · image ready to save");
       const blob=new Blob([data],{type:"image/jpeg"});
       showResult(blob);
-      // Keep the explicit SAVE IMAGE button for mobile browsers,
+      processingState.classList.add("hidden");
+      successState.classList.remove("hidden");
+      // Keep the explicit save button for mobile browsers,
       // where a later user tap is the most reliable way to open Save/Share.
 
     }
@@ -224,6 +237,9 @@ saveAgain.style.display="block"; successState.classList.add("show");
     const b=board.value.trim();
     if(!b){alert("BOARD cannot be empty");return;}
     const v=valuesNow();
+    entryState.classList.add("hidden");
+    successState.classList.add("hidden");
+    processingState.classList.remove("hidden");
     busy=true;button.disabled=true;button.textContent="GENERATING…";
     setStatus("Generating "+v.date+" · "+v.t24+"…");
     const jsString=x=>JSON.stringify(String(x));
