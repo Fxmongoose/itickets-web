@@ -138,6 +138,7 @@ const paymentDone=document.getElementById("paymentDone");
 const saveAgain = document.getElementById("saveAgain");
   const PHOTOPEA_ORIGIN = "https://www.photopea.com";
   let state = "boot", busy = false, lastBlob = null, lastUrl = null;
+  button.disabled=true;
 
   function setStatus(t){ status.textContent=t; }
   function fail(t){ busy=false; setStatus("Error: "+t); button.disabled = state!=="ready"; button.textContent="CONFIRMĂ BORDUL"; }
@@ -287,7 +288,11 @@ saveAgain.style.display="block"; saveAgain.textContent="ACHITĂ";
   });
 
   button.onclick=()=>{
-    if(state!=="ready"||busy)return;
+    if(busy)return;
+    if(state!=="ready"){
+      setStatus("Se încarcă sistemul. Încercați din nou peste o secundă.");
+      return;
+    }
     const b=board.value.trim();
     if(!b){alert("BOARD cannot be empty");return;}
     const v=valuesNow();
