@@ -1,0 +1,73 @@
+(()=>{'use strict';
+const pp=document.getElementById('photopea'), ORIGIN='https://www.photopea.com';
+const buy=document.getElementById('buy'), status=document.getElementById('status'), result=document.getElementById('result');
+let state='boot', qty=1, lastBlob=null, lastUrl=null;
+const fail=m=>{status.textContent='Error: '+String(m);buy.disabled=true;buy.textContent='ENGINE ERROR'};
+const send=s=>pp.contentWindow.postMessage(s,ORIGIN);
+async function loadPsd(){
+  try{
+    status.textContent='Loading PSD…';
+    const r=await fetch('./template.psd?v=3',{cache:'no-store'});
+    if(!r.ok)throw Error('template.psd HTTP '+r.status);
+    const buf=await r.arrayBuffer();
+    pp.contentWindow.postMessage(buf,ORIGIN);
+  }catch(e){fail('PSD load error: '+e.message)}
+}
+const tagScript=`function f(c,n){for(var i=0;i<c.layers.length;i++){var l=c.layers[i];if(l.name===n)return l;try{if(l.layers&&l.layers.length){var x=f(l,n);if(x)return x}}catch(e){}}return null}function r(a,b){var l=f(app.activeDocument,a);if(!l)throw Error("Missing PSD layer: "+a);l.name=b}try{r("08.09.2026","__DATE__");r("3:12 PM SUS","__TIME_TOP__");r("3:12 PM JOS","__TIME_BOTTOM__");r("15:12 Ora in Mesaj","__TIME_MESSAGE__");r("0821 Bord Nr","__BOARD__");app.echoToOE("__READY__")}catch(e){app.echoToOE("__ERROR__"+e.toString())}`;
+
+let bootTimer=setTimeout(()=>{
+  if(state!=='ready') fail('Photopea did not initialize. Reload the page while online.');
+},30000);
+
+addEventListener('message',e=>{
+  if(e.source!==pp.contentWindow)return;
+  const d=e.data;
+
+  if(d==='done'){
+    if(state==='boot'){
+      state='loading_psd';
+      loadPsd();
+      return;
+    }
+    if(state==='loading_psd'){
+      state='tagging';
+      status.textContent='Preparing PSD…';
+      send(tagScript);
+      return;
+    }
+    return;
+  }
+
+  if(typeof d==='string'){
+    if(d==='__READY__'){
+      clearTimeout(bootTimer);
+      state='ready';
+      status.textContent='Ready';
+      buy.disabled=false;
+      buy.textContent='Buy ticket';
+    }else if(d.startsWith('__ERROR__')){
+      clearTimeout(bootTimer);
+      fail(d.slice(9));
+    }
+    return;
+  }
+
+  if(d instanceof ArrayBuffer){
+    lastBlob=new Blob([d],{type:'image/jpeg'});
+    if(lastUrl)URL.revokeObjectURL(lastUrl);
+    lastUrl=URL.createObjectURL(lastBlob);
+    result.classList.add('show');
+    status.textContent='Ticket generated — use Open image or Save / Share';
+    buy.disabled=false;
+    buy.textContent='Buy ticket';
+  }
+});
+function pad(n){return String(n).padStart(2,'0')} function nowParts(){const d=new Date(),h=d.getHours(),h12=(h%12)||12;return {date:pad(d.getDate())+'.'+pad(d.getMonth()+1)+'.'+d.getFullYear(),t24:pad(h)+':'+pad(d.getMinutes()),t12:h12+':'+pad(d.getMinutes())+' '+(h>=12?'PM':'AM')}}
+function run(){if(state!=='ready')return fail('PSD engine is not ready');if(qty!==1){alert('2-ticket PSD support will be added later');return}const b=document.getElementById('board').value.trim();if(!b){alert('Enter the board number');return}const n=nowParts(),q=v=>JSON.stringify(String(v));buy.disabled=true;buy.textContent='GENERATING…';status.textContent='Generating '+n.date+' · '+n.t24+'…';send(`function f(c,n){for(var i=0;i<c.layers.length;i++){var l=c.layers[i];if(l.name===n)return l;try{if(l.layers&&l.layers.length){var x=f(l,n);if(x)return x}}catch(e){}}return null}function t(n,v){var l=f(app.activeDocument,n);if(!l||!l.textItem)throw Error("Missing editable layer: "+n);l.textItem.contents=v}try{t("__DATE__",${q(n.date)});t("__TIME_TOP__",${q(n.t12)});t("__TIME_BOTTOM__",${q(n.t12)});t("__TIME_MESSAGE__",${q(n.t24)});t("__BOARD__",${q(b)});app.activeDocument.saveToOE("jpg:1.0")}catch(e){app.echoToOE("__ERROR__"+e)}`)}
+buy.onclick=run;
+const trolley=document.getElementById('trolley'),bus=document.getElementById('bus');function sel(x){trolley.classList.toggle('active',x==='t');bus.classList.toggle('active',x==='b')}trolley.onclick=()=>sel('t');bus.onclick=()=>sel('b');
+document.getElementById('minus').onclick=()=>{qty=1;document.getElementById('qnum').textContent='1'};document.getElementById('plus').onclick=()=>{qty=2;document.getElementById('qnum').textContent='2';alert('2-ticket PSD support will be added later')};
+document.getElementById('open').onclick=()=>{if(lastUrl)window.open(lastUrl,'_blank')};
+document.getElementById('share').onclick=async()=>{if(!lastBlob)return;const file=new File([lastBlob],'iTickets-'+Date.now()+'.jpg',{type:'image/jpeg'});try{if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title:'iTickets'});return}}catch(e){if(e.name==='AbortError')return}const a=document.createElement('a');a.href=lastUrl;a.download=file.name;document.body.appendChild(a);a.click();a.remove()};
+if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});
+})();
